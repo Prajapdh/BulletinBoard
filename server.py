@@ -3,32 +3,45 @@ import socket
 import json
 from datetime import datetime
 
-host = "127.0.0.1"
-port = 8080
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind((host, port))
-server.listen()
+# Server configuration
+host = "127.0.0.1"  # Localhost
+port = 8080  # Port number
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a socket for TCP
+server.bind((host, port))  # Bind the server to the address and port
+server.listen()  # Start listening for incoming connections
+
+# Lists to manage connected clients and their aliases
 clients = []
 names = []
 
+# Dictionary to manage groups, their members, and messages
 groups = {
-    'public': {'id': 0, 'members': [], 'messages': [], 'message_id_counter': 1},
-    'group1': {'id': 1, 'members': [], 'messages': [], 'message_id_counter': 1},
-    'group2': {'id': 2, 'members': [], 'messages': [], 'message_id_counter': 1},
-    'group3': {'id': 3, 'members': [], 'messages': [], 'message_id_counter': 1},
-    'group4': {'id': 4, 'members': [], 'messages': [], 'message_id_counter': 1},
-    'group5': {'id': 5, 'members': [], 'messages': [], 'message_id_counter': 1}
+    'General': {'id': 0, 'members': [], 'messages': [], 'message_id_counter': 1},
+    'Study': {'id': 1, 'members': [], 'messages': [], 'message_id_counter': 1},
+    'Movies': {'id': 2, 'members': [], 'messages': [], 'message_id_counter': 1},
+    'Music': {'id': 3, 'members': [], 'messages': [], 'message_id_counter': 1},
+    'Career': {'id': 4, 'members': [], 'messages': [], 'message_id_counter': 1},
+    'Announcements': {'id': 5, 'members': [], 'messages': [], 'message_id_counter': 1},
 }
 
 def broadcast(message, group_members):
+    """
+    Sends a message to all members of a group.
+    """
     for client in group_members:
         if client in clients:
             client.send(message)
 
 def handle_connect(client):
+    """
+    Sends the list of available groups to the client upon connection.
+    """
     client.send(json.dumps({"groups": list(groups.keys())}).encode('utf-8'))
 
 def join_group(client, group_name):
+    """
+    Adds a client to a group and notifies the group members.
+    """
     if group_name in groups:
         groups[group_name]['members'].append(client)
         client.send(f"SERVER: You have joined {group_name}.".encode('utf-8'))
@@ -37,6 +50,9 @@ def join_group(client, group_name):
         client.send(f"SERVER: Group {group_name} does not exist.".encode('utf-8'))
 
 def leave_group(client, group_name):
+    """
+    Removes a client from a group and notifies the group members.
+    """
     if group_name in groups and client in groups[group_name]['members']:
         groups[group_name]['members'].remove(client)
         broadcast(f"{names[clients.index(client)]} has left {group_name}.".encode('utf-8'), groups[group_name]['members'])
@@ -44,6 +60,9 @@ def leave_group(client, group_name):
         client.send(f"SERVER: You are not in {group_name}.".encode('utf-8'))
 
 def post_message(client, group_name, subject, content):
+    """
+    Posts a message to a group and broadcasts it to the group members.
+    """
     if group_name in groups and client in groups[group_name]['members']:
         message_id = groups[group_name]['message_id_counter']
         message = {
@@ -60,6 +79,9 @@ def post_message(client, group_name, subject, content):
         client.send(f"SERVER: You are not a member of {group_name}.".encode('utf-8'))
 
 def list_group_users(client, group_name):
+    """
+    Lists all users in a specific group.
+    """
     if group_name in groups:
         user_list = [names[clients.index(member)] for member in groups[group_name]['members']]
         client.send(f"SERVER: Users in {group_name}:\n".encode('utf-8') + "\n".join(user_list).encode('utf-8'))
@@ -67,6 +89,9 @@ def list_group_users(client, group_name):
         client.send(f"SERVER: Group {group_name} does not exist.".encode('utf-8'))
 
 def retrieve_message(client, group_name, message_id):
+    """
+    Retrieves a specific message from a group by message ID.
+    """
     if group_name in groups:
         for message in groups[group_name]['messages']:
             if message['id'] == int(message_id):
@@ -77,6 +102,9 @@ def retrieve_message(client, group_name, message_id):
         client.send(f"SERVER: Group {group_name} does not exist.".encode('utf-8'))
 
 def show_help(client):
+    """
+    Sends the list of available commands to the client.
+    """
     help_message = (
         "Available commands:\n"
         "%groups - List all available groups\n"
@@ -90,8 +118,11 @@ def show_help(client):
     client.send(help_message.encode('utf-8'))
 
 def handle_client(client):
+    """
+    Handles interaction with an individual client.
+    """
     try:
-        alias = client.recv(1024).decode('utf-8')
+        alias = client.recv(1024).decode('utf-8')  # Receive alias from client
         names.append(alias)
         clients.append(client)
         client.send(f"Welcome {alias}!\n".encode('utf-8'))
@@ -122,7 +153,7 @@ def handle_client(client):
     except Exception as e:
         print(f"Error handling client {names[clients.index(client)]}: {e}")
     finally:
-        leave_group(client, 'public')
+        leave_group(client, 'public')  # Remove client from public group
         if client in clients:
             index = clients.index(client)
             names.pop(index)
@@ -130,6 +161,9 @@ def handle_client(client):
             client.close()
 
 def receive():
+    """
+    Listens for and accepts new client connections.
+    """
     print("Server is running and listening...")
     while True:
         client, address = server.accept()
