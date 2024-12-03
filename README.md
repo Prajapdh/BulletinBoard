@@ -1,161 +1,163 @@
-## *Project Overview*
-This project includes two main components:
-1. *Server (server.py)*: Manages group chats, handles client connections, and broadcasts messages.
-2. *Client (client.py)*: Allows users to connect to the server, join groups, send messages, and interact with group members.
+## Bulletin Board Using Socket Programming
+### Team Members:
+- Daksh Prajapati
+- Varad Parte
+- Arya Narke
+
+This project includes:
+1. **Server (server.py): Manages group chats, client connections, and broadcasts messages.
+2. **Client (client.py): Allows users to connect to the server, join groups, send messages, and interact with group members.
 
 The programs are written in Python and use sockets for communication.
 
 ---
 
 ## *Setup Instructions*
+
 ### *Prerequisites*
-1. *Python Installation*:
-   - Ensure Python 3.x is installed on your machine.
+1. Install Python (version 3.x or above):
+   - [Python Download](https://www.python.org/downloads/)
    - Verify installation:
      bash
      python --version
      
-   - Install missing dependencies if needed:
-     bash
-     pip install --upgrade pip
-     
-
-2. *JSON (Native to Python)*:
-   The json library is included by default in Python 3.x, so no additional installation is required.
+2. Ensure make is installed if you want to use the Makefile:
+   - For Windows, you can use MinGW or Chocolatey.
+   - For Linux/MacOS, make is typically pre-installed.
 
 ---
 
-## *Compilation and Execution*
+## *How to Run*
 
-### *Running the Server*
+### **Option 1: Using the Makefile**
+
+#### *Running the Server*
+1. Open a terminal.
+2. Navigate to the directory containing the Makefile, server.py, and client.py.
+3. Run the server:
+   bash
+   make run_server
+   
+
+#### *Running the Client*
+1. Open another terminal.
+2. Navigate to the same directory.
+3. Run the client:
+   bash
+   make run_client
+   
+
+#### *Cleaning Up Temporary Files*
+To remove temporary files like __pycache__, run:
+bash
+make clean
+
+
+#### *Help*
+To display all available commands in the Makefile, run:
+bash
+make help
+
+
+---
+
+### *Option 2: Running Manually*
+
+#### *Running the Server*
 1. Open a terminal.
 2. Navigate to the directory containing server.py.
-3. Run the server:
+3. Start the server:
    bash
    python server.py
    
-4. The server will start listening for client connections on 127.0.0.1 at port 8080.
 
----
-
-### *Running the Client*
-1. Open a new terminal for each client.
+#### *Running the Client*
+1. Open another terminal.
 2. Navigate to the directory containing client.py.
-3. Run the client:
+3. Start the client:
    bash
    python client.py
    
-4. When prompted, enter an alias (e.g., John) to identify yourself in the chat.
-5. Use the available commands (see below) to interact with the server and other users.
 
 ---
 
 ## *Usability Instructions*
-### *Available Commands*
-These commands can be typed into the client terminal to interact with the server:
-- *%groups*: List all available groups on the server.
-- *%groupjoin <group_name>*: Join a specific group. Example:
-  
+
+### *Available Commands in the Client*
+Once the client is connected to the server, the following commands can be used:
+- **%groups**: List all available groups on the server.
+- **%groupjoin <group_name>**: Join a specific group.
+  bash
   %groupjoin public
   
-- *%groupleave <group_name>*: Leave the current group. Example:
-  
+- **%groupleave <group_name>**: Leave the current group.
+  bash
   %groupleave public
   
-- *%grouppost <group_name> <subject> <message>*: Post a message to a group. Example:
-  
+- **%grouppost <group_name> <subject> <message>**: Post a message to a group.
+  bash
   %grouppost public "Meeting" "Let’s discuss the agenda."
   
-- *%groupusers <group_name>*: List all users in a specific group.
-- *%groupmessage <group_name> <message_id>*: Retrieve a specific message by ID from a group.
-- *%help*: Display a list of available commands and their usage.
-- *%exit*: Disconnect from the server and exit.
+- **%groupusers <group_name>**: List all users in a specific group.
+- **%groupmessage <group_name> <message_id>**: Retrieve a specific message from a group.
+- **%exit**: Disconnect from the server and exit the chat.
+- **%help**: Display a list of available commands and their usage.
 
 ---
 
-## *Error Handling and Known Issues*
+## *Error Handling*
 
-### *Major Issues Encountered*
-1. *Concurrent Access to Resources*:
-   - *Issue*: Race conditions could occur when multiple clients access or modify shared data (e.g., group membership).
-   - *Solution*: Used Python’s threading module to handle multiple client connections safely.
+### *Known Issues and Solutions*
+1. *Connection Refused*:
+   - *Issue*: The client cannot connect if the server is not running.
+   - *Solution*: Start the server before starting any clients.
 
-2. *Client Disconnections*:
-   - *Issue*: When a client disconnected abruptly, the server threw an error.
-   - *Solution*: Added error handling to gracefully remove disconnected clients.
+2. *Server Crashes on Client Disconnection*:
+   - *Issue*: Abrupt client disconnections may cause errors on the server.
+   - *Solution*: Added exception handling to cleanly remove disconnected clients.
 
-3. *JSON Parsing*:
-   - *Issue*: Messages were being improperly formatted as JSON strings.
-   - *Solution*: Implemented strict formatting for message serialization and deserialization using Python's json library.
+3. *JSON Formatting Errors*:
+   - *Issue*: Messages improperly formatted as JSON.
+   - *Solution*: Standardized message serialization and deserialization using Python’s json module.
 
-4. *Message Retrieval*:
-   - *Issue*: Users outside a group could attempt to retrieve messages.
-   - *Solution*: Added validation to ensure users can only retrieve messages from groups they have joined.
-
-### *Unresolved Issues*
-- Currently, no significant unresolved issues.
-
----
-
-## *Comments*
-### *Server (server.py)*
-- The server creates a socket that listens on 127.0.0.1:8080.
-- Manages clients using the threading module.
-- Handles:
-  - Broadcasting messages to group members.
-  - Maintaining group memberships and messages.
-  - Providing help and feedback to users.
-
-### *Client (client.py)*
-- The client connects to the server and provides an interface to interact with groups.
-- Features:
-  - Support for multiple commands.
-  - Ability to join/leave groups and retrieve messages.
-  - Graceful disconnection handling.
+4. *Group Membership*:
+   - *Issue*: Users outside a group could previously access its messages.
+   - *Solution*: Added validation to restrict access to group members only.
 
 ---
 
 ## *Example Usage*
 
-### *Scenario: John and Alice Join and Chat in public*
-1. *Start the server*:
-   bash
-   python server.py
-   
-   Output:
-   
-   Server is running and listening...
-   
+### **Scenario: John and Alice Chat in public Group**
 
-2. *Start John’s client*:
+#### *John’s Terminal*
+1. Start the client:
    bash
    python client.py
    
-   Input:
+2. Enter alias:
    
    Choose an alias >>> John
    
-   Commands:
+3. Join the public group:
    
    %groupjoin public
+   
+4. Send a message:
+   
    %grouppost public "Hello" "Hi everyone!"
    
 
-3. *Start Alice’s client*:
+#### *Alice’s Terminal*
+1. Start the client:
    bash
    python client.py
    
-   Input:
+2. Enter alias:
    
    Choose an alias >>> Alice
    
-   Commands:
+3. Join the public group:
    
-   %groupjoin public
-   
-
-4. *John and Alice See Each Other’s Messages*:
-   Both clients will display:
-   
-   SERVER: You have joined public.
-   John: Hi everyone!
+   %groupjoin public
+   
