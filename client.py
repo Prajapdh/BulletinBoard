@@ -2,9 +2,9 @@ import threading
 import socket
 import json
 
-# Prompt user to choose an alias for identification in the chat
-# This alias will be displayed alongside messages sent by the user
-alias = input('Choose an alias >>> ')
+# Prompt user to choose an username for identification in the chat
+# This username will be displayed alongside messages sent by the user
+clientName = input('Choose a username >>> ')
 
 # Create a client socket for TCP communication
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -24,6 +24,11 @@ help_message = (
     "%grouppost <group_name> <subject> <message> - Post a message to a specific group\n"
     "%groupusers <group_name> - List users in a specific group\n"
     "%groupmessage <group_name> <message_id> - Retrieve a specific message\n"
+    "%join - Join the public group\n"
+    "%post <subject> <message> - Post a message to the public group\n"
+    "%users - List users in the public group\n"
+    "%leave - Leave the public group\n"
+    "%message <message_id> - Retrieve a specific message from the public group\n"
     "%exit - Exit the chat\n"
     "%help - Show this help message\n"
 )
@@ -109,6 +114,16 @@ def handle_command(command):
         leave_group(args[0])
     elif command == '%groupmessage' and len(args) == 2:
         get_group_message(args[0], args[1])
+    elif command == '%join':
+        join_public()
+    elif command == '%post' and len(args) >= 2:
+        post_public(args[0], ' '.join(args[1:]))
+    elif command == '%users':
+        get_public_users()
+    elif command == '%leave':
+        leave_public()
+    elif command == '%message' and len(args) == 1:
+        get_public_message(args[0])
     elif command == '%help':
         print(help_message)
     elif command == '%exit':
@@ -120,13 +135,13 @@ def handle_command(command):
 def connect_to_server(address, port):
     """
     Establishes a connection to the server.
-    Sends the user's alias to the server and starts threads for sending and receiving messages.
+    Sends the user's clientName to the server and starts threads for sending and receiving messages.
     """
     try:
         global client
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a new socket
         client.connect((address, port))  # Connect to the server
-        client.send(alias.encode('utf-8'))  # Send the alias to the server for identification
+        client.send(clientName.encode('utf-8'))  # Send the clientName to the server for identification
         
         # Start a thread to handle incoming messages
         receive_thread = threading.Thread(target=client_receive)
@@ -138,18 +153,50 @@ def connect_to_server(address, port):
     except Exception as e:
         print(f"Error connecting to server: {e}")
 
+def join_public():
+    global current_group
+    client.send('%join'.encode('utf-8'))
+    current_group = 'public'
+
+def post_public(subject, content):
+    client.send(f'%post {subject} {content}'.encode('utf-8'))
+
+def get_public_users():
+    client.send('%users'.encode('utf-8'))
+
+def leave_public():
+    global current_group
+    client.send('%leave'.encode('utf-8'))
+    if current_group == 'public':
+        current_group = None
+
+def get_public_message(message_id):
+    client.send(f'%message {message_id}'.encode('utf-8'))
+
 # Function to request the list of available groups from the server
 def get_groups():
     client.send('%groups'.encode('utf-8'))
 
-# Function to join a specific group
+# # Function to join a specific group
+# def join_group(group_name):
+#     global current_group
+#     if current_group == group_name:
+#         print(f"You are already in the group: {group_name}")
+#     else:
+#         client.send(f'%groupjoin {group_name}'.encode('utf-8'))
+#         current_group = group_name
+
 def join_group(group_name):
     global current_group
     if current_group == group_name:
         print(f"You are already in the group: {group_name}")
     else:
         client.send(f'%groupjoin {group_name}'.encode('utf-8'))
-        current_group = group_name
+        # Wait for server confirmation
+        response = client.recv(1024).decode('utf-8')
+        print(response)
+        if "You have joined" in response:
+            current_group = group_name
 
 # Function to post a message to a group
 def post_to_group(group_name, subject, content):
@@ -162,6 +209,13 @@ def get_group_users(group_name):
     else:
         print(f"You must be part of the group {group_name} to view its members.")
 
+# Function to retrieve a specific message from a group
+def get_group_message(group_name, message_id):
+    if current_group == group_name:
+        client.send(f'%groupmessage {group_name} {message_id}'.encode('utf-8'))
+    else:
+        print(f"You must be part of the group {group_name} to view its messages.")
+
 # Function to leave a specific group
 def leave_group(group_name):
     global current_group
@@ -171,13 +225,6 @@ def leave_group(group_name):
         current_group = None
     else:
         print(f"You are not in the group: {group_name}")
-
-# Function to retrieve a specific message from a group
-def get_group_message(group_name, message_id):
-    if current_group == group_name:
-        client.send(f'%groupmessage {group_name} {message_id}'.encode('utf-8'))
-    else:
-        print(f"You must be part of the group {group_name} to view its messages.")
 
 # Function to exit the program and close the connection
 def exit_program():
